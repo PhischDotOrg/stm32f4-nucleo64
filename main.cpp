@@ -63,7 +63,6 @@ static gpio::GpioEngine                 gpio_engine_A(&gpio_A);
  * LEDs
  ******************************************************************************/
 static gpio::PinT<decltype(gpio_engine_A)>  g_led_green(&gpio_engine_A, 5);
-static gpio::PinT<decltype(gpio_engine_A)>  g_led_red(&gpio_engine_A, 5);
 
 /*******************************************************************************
  * UART
@@ -124,7 +123,6 @@ main(void) {
     vTaskStartScheduler();
 
 bad:
-    g_led_red.set(gpio::Pin::On);
     g_uart.printf("FATAL ERROR!\r\n");
     while (1) ;
 }
@@ -141,9 +139,6 @@ extern "C" {
 #endif /* defined (__cplusplus) */
 void
 halt(const char * const p_file, const unsigned p_line) {
-    g_led_red.enable(gpio::GpioAccessViaSTM32F4::e_Output, gpio::GpioAccessViaSTM32F4::e_None, gpio::GpioAccessViaSTM32F4::e_Gpio);
-    g_led_red.set(gpio::Pin::On);
-
     g_uart.printf("%s(): %s : %d\r\n", __func__, p_file, p_line);
 
     while (1) { };
