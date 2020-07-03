@@ -12,3 +12,6 @@ Example:
 ```
 $ git clone git@github.com:PhischDotOrg/stm32f4-nucleo64.git --recursive
 ```
+
+# How to build
+See the documentation for the common reposority at [https://github.com/PhischDotOrg/stm32f4-common](https://github.com/PhischDotOrg/stm32f4-common).
