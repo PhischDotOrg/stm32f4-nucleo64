@@ -2,7 +2,7 @@
 # $Copyright$
 #
 cmake_minimum_required(VERSION 3.12)
-project(STM32F4-Minimal)
+project(stm32f4-nucleo64)
 
 ###############################################################################
 # Enable C++17 Support according to:
@@ -24,13 +24,13 @@ include(common/Coverage.cmake)
 ###############################################################################
 # Project-specific configuration
 ###############################################################################
-set(PROJECT_NAME    stm32f4-minimal)
+set(PROJECT_NAME    ${CMAKE_PROJECT_NAME})
 set(TARGET_NAME     firmware)
 set(TARGET_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
 )
 
-set(STM32F4_BOARD   STM32F4_Discovery   CACHE STRING "STM32F4 Board Type")
+set(STM32F4_BOARD   STM32F4_Nucleo_F411RE   CACHE STRING "STM32F4 Board Type")
 
 ###############################################################################
 # Include a common CMake File that contains the stuff which would normally go

@@ -38,11 +38,11 @@ extern char bstack, estack;
 /*******************************************************************************
  * System Devices
  ******************************************************************************/
-static devices::RccViaSTM32F4::PllConfiguration pllCfg(336, 8, devices::RccViaSTM32F4::e_PllP_Div2, 7,
+static devices::RccViaSTM32F4::PllConfiguration pllCfg(192, 8, devices::RccViaSTM32F4::e_PllP_Div4, 8,
                                                   devices::RccViaSTM32F4::e_APBPrescaler_Div4,
                                                   devices::RccViaSTM32F4::e_APBPrescaler_Div2,
                                                   devices::RccViaSTM32F4::e_AHBPrescaler_None,
-                                                  devices::RccViaSTM32F4::e_PllSourceHSE,
+                                                  devices::RccViaSTM32F4::e_PllSourceHSI,
                                                   devices::RccViaSTM32F4::e_SysclkPLL,
                                                   16000000,
                                                    8000000);
@@ -59,38 +59,24 @@ static devices::NvicViaSTM32F4          nvic(NVIC, scb);
 static gpio::GpioAccessViaSTM32F4_GpioA gpio_A(rcc);
 static gpio::GpioEngine                 gpio_engine_A(&gpio_A);
 
-static gpio::GpioAccessViaSTM32F4_GpioB gpio_B(rcc);
-static gpio::GpioEngine                 gpio_engine_B(&gpio_B);
-
-static gpio::GpioAccessViaSTM32F4_GpioC gpio_C(rcc);
-static gpio::GpioEngine                 gpio_engine_C(&gpio_C);
-
-static gpio::GpioAccessViaSTM32F4_GpioD gpio_D(rcc);
-static gpio::GpioEngine                 gpio_engine_D(&gpio_D);
-
 /*******************************************************************************
  * LEDs
  ******************************************************************************/
-static gpio::PinT<decltype(gpio_engine_D)>  g_led_green(&gpio_engine_D, 12);
-static gpio::PinT<decltype(gpio_engine_D)>  g_led_orange(&gpio_engine_D, 13);
-static gpio::PinT<decltype(gpio_engine_D)>  g_led_red(&gpio_engine_D, 14);
-static gpio::PinT<decltype(gpio_engine_D)>  g_led_blue(&gpio_engine_D, 15);
+static gpio::PinT<decltype(gpio_engine_A)>  g_led_green(&gpio_engine_A, 5);
+static gpio::PinT<decltype(gpio_engine_A)>  g_led_red(&gpio_engine_A, 5);
 
 /*******************************************************************************
  * UART
  ******************************************************************************/
-static gpio::PinT<decltype(gpio_engine_C)>  uart_tx(&gpio_engine_C, 6);
-static gpio::PinT<decltype(gpio_engine_C)>  uart_rx(&gpio_engine_C, 7);
-static uart::UartAccessSTM32F4_Uart6        uart_access(rcc, uart_rx, uart_tx);
+static gpio::PinT<decltype(gpio_engine_A)>  uart_tx(&gpio_engine_A, 2);
+static gpio::PinT<decltype(gpio_engine_A)>  uart_rx(&gpio_engine_A, 3);
+static uart::UartAccessSTM32F4_Uart2        uart_access(rcc, uart_rx, uart_tx);
 uart::UartDevice                            g_uart(&uart_access);
 
 /*******************************************************************************
  * Tasks
  ******************************************************************************/
-static tasks::HeartbeatT<decltype(g_uart), decltype(g_led_blue)>        heartbeat_bl("hrtbt_b", g_uart, g_led_blue, 4, 2000);
-static tasks::HeartbeatT<decltype(g_uart), decltype(g_led_green)>       heartbeat_gn("hrtbt_g", g_uart, g_led_green, 3, 1000);
-static tasks::HeartbeatT<decltype(g_uart), decltype(g_led_orange)>      heartbeat_or("hrtbt_o", g_uart, g_led_orange, 2, 500);
-static tasks::HeartbeatT<decltype(g_uart), decltype(g_led_red)>         heartbeat_rd("hrtbt_r", g_uart, g_led_red, 1, 250);
+static tasks::HeartbeatT<decltype(g_uart), decltype(g_led_green)>       heartbeat_gn("hrtbt_g", g_uart, g_led_green, 3, 500);
 
 /*******************************************************************************
  *
@@ -102,11 +88,8 @@ extern "C" {
 void
 main(void) {
     g_led_green.enable(gpio::GpioAccessViaSTM32F4::e_Output, gpio::GpioAccessViaSTM32F4::e_None, gpio::GpioAccessViaSTM32F4::e_Gpio);
-    g_led_orange.enable(gpio::GpioAccessViaSTM32F4::e_Output, gpio::GpioAccessViaSTM32F4::e_None, gpio::GpioAccessViaSTM32F4::e_Gpio);
-    g_led_red.enable(gpio::GpioAccessViaSTM32F4::e_Output, gpio::GpioAccessViaSTM32F4::e_None, gpio::GpioAccessViaSTM32F4::e_Gpio);
-    g_led_blue.enable(gpio::GpioAccessViaSTM32F4::e_Output, gpio::GpioAccessViaSTM32F4::e_None, gpio::GpioAccessViaSTM32F4::e_Gpio);
 
-    g_uart.printf("Copyright (c) 2013-2017, 2020 Philip Schulz <phs@phisch.org>\r\n");
+    g_uart.printf("Copyright (c) 2013-2020 Philip Schulz <phs@phisch.org>\r\n");
     g_uart.printf("All rights reserved.\r\n");
     g_uart.printf("\r\n");
     g_uart.printf("SW Version: %s\r\n", gSwVersionId);
