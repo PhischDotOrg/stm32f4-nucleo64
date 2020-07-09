@@ -20,32 +20,22 @@
 #include <tasks/Heartbeat.hpp>
 
 /*******************************************************************************
- *
- ******************************************************************************/
-#if defined(__cplusplus)
-extern "C" {
-#endif /* defined(__cplusplus) */
-
-extern char stext, etext;
-extern char sdata, edata;
-extern char sbss, ebss;
-extern char bstack, estack;
-
-#if defined(__cplusplus)
-} /* extern "C" */
-#endif /* defined(__cplusplus) */
-
-/*******************************************************************************
  * System Devices
  ******************************************************************************/
-static devices::RccViaSTM32F4::PllConfiguration pllCfg(192, 8, devices::RccViaSTM32F4::e_PllP_Div4, 8,
-                                                  devices::RccViaSTM32F4::e_APBPrescaler_Div4,
-                                                  devices::RccViaSTM32F4::e_APBPrescaler_Div2,
-                                                  devices::RccViaSTM32F4::e_AHBPrescaler_None,
-                                                  devices::RccViaSTM32F4::e_PllSourceHSI,
-                                                  devices::RccViaSTM32F4::e_SysclkPLL,
-                                                  16000000,
-                                                   8000000);
+static const constexpr devices::PllConfigurationValuesT<devices::Stm32F407xx> pllCfgValues = {
+    .m_pllSource        = devices::Stm32F407xx::PllSource_t::e_PllSourceHSI,
+    .m_hseSpeedInHz     = 8 * 1000 * 1000,
+    .m_pllM             = 8,
+    .m_pllN             = 192,
+    .m_pllP             = devices::Stm32F407xx::PllP_t::e_PllP_Div4,
+    .m_pllQ             = devices::Stm32F407xx::PllQ_t::e_PllQ_Div8,
+    .m_sysclkSource     = devices::Stm32F407xx::SysclkSource_t::e_SysclkPLL,
+    .m_ahbPrescaler     = devices::Stm32F407xx::AHBPrescaler_t::e_AHBPrescaler_None,
+    .m_apb1Prescaler    = devices::Stm32F407xx::APBPrescaler_t::e_APBPrescaler_Div2,
+    .m_apb2Prescaler    = devices::Stm32F407xx::APBPrescaler_t::e_APBPrescaler_None
+};
+
+static const constexpr devices::PllConfigurationInterfaceT<decltype(pllCfgValues)> pllCfg(pllCfgValues);
 
 static devices::PwrViaSTM32F4           pwr(PWR);
 static devices::FlashViaSTM32F4         flash(FLASH);
@@ -84,9 +74,36 @@ static tasks::HeartbeatT<decltype(g_uart), decltype(g_led_green)>       heartbea
 extern "C" {
 #endif /* defined(__cplusplus) */
 
+extern char stext, etext;
+extern char sdata, edata;
+extern char sbss, ebss;
+extern char bstack, estack;
+
+const uint32_t SystemCoreClock = pllCfg.getSysclkSpeedInHz();
+
+static_assert(SystemCoreClock               == 96 * 1000 * 1000,   "Expected System Clock to be at 96 MHz!");
+static_assert(pllCfg.getAhbSpeedInHz()      == 96 * 1000 * 1000,   "Expected AHB to be running at 96 MHz!");
+static_assert(pllCfg.getApb1SpeedInHz()     == 48 * 1000 * 1000,   "Expected APB1 to be running at 48 MHz!");
+static_assert(pllCfg.getApb2SpeedInHz()     == 96 * 1000 * 1000,   "Expected APB2 to be running at 96 MHz!");
+
+static_assert(pllCfg.isValid(pllCfg) == true,                       "PLL Configuration is not valid!");
+
+#if defined(__cplusplus)
+} /* extern "C" */
+#endif /* defined(__cplusplus) */
+
+/*******************************************************************************
+ *
+ ******************************************************************************/
+#if defined(__cplusplus)
+extern "C" {
+#endif /* defined(__cplusplus) */
+
 void
 main(void) {
     g_led_green.enable(gpio::GpioAccessViaSTM32F4::e_Output, gpio::GpioAccessViaSTM32F4::e_None, gpio::GpioAccessViaSTM32F4::e_Gpio);
+
+    uart_access.setBaudRate(decltype(uart_access)::e_BaudRate_115200);
 
     g_uart.printf("Copyright (c) 2013-2020 Philip Schulz <phs@phisch.org>\r\n");
     g_uart.printf("All rights reserved.\r\n");
@@ -103,10 +120,10 @@ main(void) {
     g_uart.printf("     Stack: [0x%x - 0x%x]\t(%d Bytes)\r\n", &bstack, &estack, &estack - &bstack);
     g_uart.printf("\r\n");
 
-    unsigned sysclk = rcc.getSysclkSpeedInHz() / 1000;
-    unsigned ahb    = rcc.getAhbSpeedInHz() / 1000;
-    unsigned apb1   = rcc.getApb1SpeedInHz() / 1000;
-    unsigned apb2   = rcc.getApb2SpeedInHz() / 1000;
+    const unsigned sysclk = pllCfg.getSysclkSpeedInHz() / 1000;
+    const unsigned ahb    = pllCfg.getAhbSpeedInHz() / 1000;
+    const unsigned apb1   = pllCfg.getApb1SpeedInHz() / 1000;
+    const unsigned apb2   = pllCfg.getApb2SpeedInHz() / 1000;
 
     g_uart.printf("CPU running @ %d kHz\r\n", sysclk);
     g_uart.printf("        AHB @ %d kHz\r\n", ahb);
@@ -114,7 +131,7 @@ main(void) {
     g_uart.printf("       APB2 @ %d kHz\r\n", apb2);
     g_uart.printf("\r\n");
 
-    if (SysTick_Config(rcc.getSysclkSpeedInHz() / 1000)) {
+    if (SysTick_Config(pllCfg.getSysclkSpeedInHz() / 1000)) {
         g_uart.printf("FATAL: Capture Error!\r\n");
         goto bad;
     }
@@ -169,7 +186,7 @@ usleep(unsigned p_usec) {
      * Configure SysTick for 1ms Overflow, then wait for required number of
      * milliseconds.
      */
-    const unsigned ticksPerMs = rcc.getSysclkSpeedInHz() / 1000;
+    const unsigned ticksPerMs = pllCfg.getSysclkSpeedInHz() / 1000;
     assert((ticksPerMs & 0x00FFFFFF) == ticksPerMs); 
     unsigned waitMs = p_usec / 1000;
 
@@ -189,7 +206,7 @@ usleep(unsigned p_usec) {
      * Configure SysTick for 1us Overflow, then wait for required number of
      * microseconds.
      */
-    const unsigned ticksPerUs = rcc.getSysclkSpeedInHz() / (1000 * 1000);
+    const unsigned ticksPerUs = pllCfg.getSysclkSpeedInHz() / (1000 * 1000);
     assert((ticksPerUs & 0x00FFFFFF) == ticksPerUs);
     unsigned waitUs = p_usec & 1024; // Assumes 1ms = 1024us. Close enough.
 
