@@ -24,7 +24,6 @@ include(common/Coverage.cmake)
 ###############################################################################
 # Project-specific configuration
 ###############################################################################
-set(PROJECT_NAME    ${CMAKE_PROJECT_NAME})
 set(TARGET_NAME     firmware)
 set(TARGET_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
