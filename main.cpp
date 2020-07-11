@@ -1,8 +1,6 @@
 /*-
  * $Copyright$
 -*/
-#include <version.h>
-
 #include <common/Infrastructure.hpp>
 
 #include <stm32f4/PwrViaSTM32F4.hpp>
@@ -72,11 +70,7 @@ static tasks::HeartbeatT<decltype(g_uart), decltype(g_led_green)>       heartbea
 /*******************************************************************************
  *
  ******************************************************************************/
-#if defined(__cplusplus)
-extern "C" {
-#endif /* defined(__cplusplus) */
-
-const uint32_t SystemCoreClock = pllCfg.getSysclkSpeedInHz();
+extern "C" const uint32_t SystemCoreClock = pllCfg.getSysclkSpeedInHz();
 
 static_assert(SystemCoreClock               == 96 * 1000 * 1000,   "Expected System Clock to be at 96 MHz!");
 static_assert(pllCfg.getAhbSpeedInHz()      == 96 * 1000 * 1000,   "Expected AHB to be running at 96 MHz!");
@@ -84,10 +78,6 @@ static_assert(pllCfg.getApb1SpeedInHz()     == 48 * 1000 * 1000,   "Expected APB
 static_assert(pllCfg.getApb2SpeedInHz()     == 96 * 1000 * 1000,   "Expected APB2 to be running at 96 MHz!");
 
 static_assert(pllCfg.isValid(pllCfg) == true,                       "PLL Configuration is not valid!");
-
-#if defined(__cplusplus)
-} /* extern "C" */
-#endif /* defined(__cplusplus) */
 
 /*******************************************************************************
  *
@@ -102,42 +92,23 @@ main(void) {
 
     uart_access.setBaudRate(decltype(uart_access)::e_BaudRate_115200);
 
-    g_uart.printf("Copyright (c) 2013-2020 Philip Schulz <phs@phisch.org>\r\n");
-    g_uart.printf("All rights reserved.\r\n");
-    g_uart.printf("\r\n");
-    g_uart.printf("SW Version: %s\r\n", gSwVersionId);
-    g_uart.printf("SW Build Timestamp: %s\r\n", gSwBuildTime);
-    g_uart.printf("\r\n");
-    g_uart.printf("Fixed Data: [0x0%x - 0x0%x]\t(%d Bytes total, %d Bytes used)\r\n",
-      &gFixedDataBegin, &gFixedDataEnd, &gFixedDataEnd - &gFixedDataBegin, &gFixedDataUsed- &gFixedDataBegin);
-    g_uart.printf("      Code: [0x0%x - 0x0%x]\t(%d Bytes)\r\n", &stext, &etext, &etext - &stext);
-    g_uart.printf("      Data: [0x%x - 0x%x]\t(%d Bytes)\r\n", &sdata, &edata, &edata - &sdata);
-    g_uart.printf("       BSS: [0x%x - 0x%x]\t(%d Bytes)\r\n", &sbss, &ebss, &ebss - &sbss);
-    g_uart.printf(" Total RAM: [0x%x - 0x%x]\t(%d Bytes)\r\n", &sdata, &ebss, &ebss - &sdata);
-    g_uart.printf("     Stack: [0x%x - 0x%x]\t(%d Bytes)\r\n", &bstack, &estack, &estack - &bstack);
-    g_uart.printf("\r\n");
+    constexpr unsigned sysclk = pllCfg.getSysclkSpeedInHz() / 1000;
+    constexpr unsigned ahb    = pllCfg.getAhbSpeedInHz() / 1000;
+    constexpr unsigned apb1   = pllCfg.getApb1SpeedInHz() / 1000;
+    constexpr unsigned apb2   = pllCfg.getApb2SpeedInHz() / 1000;
 
-    const unsigned sysclk = pllCfg.getSysclkSpeedInHz() / 1000;
-    const unsigned ahb    = pllCfg.getAhbSpeedInHz() / 1000;
-    const unsigned apb1   = pllCfg.getApb1SpeedInHz() / 1000;
-    const unsigned apb2   = pllCfg.getApb2SpeedInHz() / 1000;
+    PrintStartupMessage(sysclk, ahb, apb1, apb2);
 
-    g_uart.printf("CPU running @ %d kHz\r\n", sysclk);
-    g_uart.printf("        AHB @ %d kHz\r\n", ahb);
-    g_uart.printf("       APB1 @ %d kHz\r\n", apb1);
-    g_uart.printf("       APB2 @ %d kHz\r\n", apb2);
-    g_uart.printf("\r\n");
-
-    if (SysTick_Config(pllCfg.getSysclkSpeedInHz() / 1000)) {
-        g_uart.printf("FATAL: Capture Error!\r\n");
+    if (SysTick_Config(SystemCoreClock / 1000)) {
+        PHISCH_LOG("FATAL: Capture Error!\r\n");
         goto bad;
     }
 
-    g_uart.printf("Starting FreeRTOS Scheduler...\r\n");
+    PHISCH_LOG("Starting FreeRTOS Scheduler...\r\n");
     vTaskStartScheduler();
 
 bad:
-    g_uart.printf("FATAL ERROR!\r\n");
+    PHISCH_LOG("FATAL ERROR!\r\n");
     while (1) ;
 }
 
